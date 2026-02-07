@@ -83,36 +83,13 @@ WSL2からWindows側のOllamaを使用する場合、設定画面の「自動検
 
 ```
 translateapp/
-├── app/                          # SvelteKit アプリケーション（BFF統合）
+├── app/                # SvelteKit アプリケーション（BFF統合）
 │   ├── src/
-│   │   ├── routes/
-│   │   │   ├── +page.svelte            # メインUI（Svelte 5 runes）
-│   │   │   ├── +layout.ts              # SPA設定
-│   │   │   └── api/
-│   │   │       ├── health/+server.ts    # ヘルスチェック
-│   │   │       ├── translate/+server.ts # 翻訳API
-│   │   │       ├── history/
-│   │   │       │   ├── +server.ts       # 履歴CRUD
-│   │   │       │   └── [id]/+server.ts  # 個別削除
-│   │   │       └── settings/
-│   │   │           ├── +server.ts       # 設定取得・保存 (GET/PUT)
-│   │   │           ├── detect/+server.ts # Ollama自動検出 (POST)
-│   │   │           └── models/+server.ts # モデル一覧取得 (GET)
-│   │   └── lib/
-│   │       ├── server/
-│   │       │   ├── constants.ts         # 言語マップ
-│   │       │   ├── schemas.ts           # Zodバリデーション
-│   │       │   ├── ollama.ts            # Ollamaクライアント（設定優先順位付き）
-│   │       │   ├── database.ts          # SQLiteデータ層（history + settings）
-│   │       │   └── detect.ts            # Ollamaヒューリスティック検出
-│   │       └── types.ts                 # 共有型定義
-│   ├── e2e/                             # Playwright E2Eテスト
-│   ├── data/                            # SQLiteデータベース
-│   └── package.json
-├── .claude/CLAUDE.md                    # Claude Code向けガイド
-├── start.sh                             # 起動スクリプト (Linux/WSL2)
-├── start.bat                            # 起動スクリプト (Windows)
-└── README.md                            # このファイル
+│   │   ├── routes/     #   ページ + API Routes (+server.ts)
+│   │   └── lib/        #   共有ライブラリ（サーバー/クライアント）
+│   └── e2e/            #   Playwright E2Eテスト
+├── start.sh            # 起動スクリプト (Linux/WSL2)
+└── start.bat           # 起動スクリプト (Windows)
 ```
 
 ## 機能
