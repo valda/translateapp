@@ -1,0 +1,44 @@
+@import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+
+@theme {
+  --color-stone-50: #faf8f5;
+  --color-stone-100: #f0ece5;
+  --color-stone-200: #e2dbd0;
+  --color-stone-300: #cfc5b5;
+  --color-stone-400: #b5a690;
+  --color-stone-500: #9a8a72;
+  --color-stone-600: #7d6e5a;
+  --color-stone-700: #5e5343;
+  --color-stone-800: #3d362c;
+  --color-stone-900: #1f1b16;
+
+  --color-ink: #1a1612;
+  --color-ink-light: #4a4035;
+  --color-ink-muted: #8a7d6f;
+
+  --color-sumi-500: #2d2926;
+  --color-sumi-600: #1a1714;
+
+  --color-washi: #faf8f5;
+  --color-washi-warm: #f5f0e8;
+
+  --color-accent: #c45d3e;
+  --color-accent-hover: #a94d32;
+  --color-accent-light: #fdf0ec;
+
+  --color-danger: #b33d3d;
+  --color-danger-hover: #922f2f;
+  --color-danger-light: #fce8e8;
+
+  --font-display: 'Shippori Mincho', 'Noto Serif JP', serif;
+  --font-body: 'DM Sans', 'Noto Sans JP', sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-washi-warm);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

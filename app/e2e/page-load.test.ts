@@ -19,11 +19,11 @@ test.describe('メインページ表示', () => {
   });
 
   test('翻訳ボタンが表示される', async ({ page }) => {
-    const button = page.locator('button.translate-btn');
+    const button = page.locator('[data-testid="translate-btn"]');
     await expect(button).toBeVisible();
   });
 
   test('履歴セクションが存在する', async ({ page }) => {
-    await expect(page.locator('.history-panel')).toBeVisible();
+    await expect(page.locator('[data-testid="history-panel"]')).toBeVisible();
   });
 });

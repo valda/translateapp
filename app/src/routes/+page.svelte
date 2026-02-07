@@ -145,99 +145,149 @@
   });
 </script>
 
-<main>
-  <h1>TranslateGemma ローカル翻訳</h1>
+<main class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+  <!-- Header -->
+  <header class="mb-10 text-center">
+    <h1 class="font-display text-ink text-3xl font-bold tracking-tight sm:text-4xl">
+      TranslateGemma
+    </h1>
+    <p class="text-ink-muted mt-1 text-sm tracking-widest">ローカル翻訳</p>
+  </header>
 
-  <div class="translation-panel">
-    <!-- 言語選択 -->
-    <div class="language-select">
-      <select bind:value={sourceLang}>
+  <!-- Translation Panel -->
+  <section class="bg-washi mb-8 rounded-2xl border border-stone-200 p-6 shadow-sm sm:p-8">
+    <!-- Language selectors -->
+    <div class="mb-6 flex items-center gap-3">
+      <select
+        bind:value={sourceLang}
+        class="bg-washi-warm text-ink-light focus:border-accent focus:ring-accent/20 flex-1 rounded-lg border border-stone-200 px-4 py-2.5 text-sm font-medium transition-colors focus:ring-2 focus:outline-none"
+      >
         {#each languages as lang (lang.code)}
           <option value={lang.code}>{lang.name}</option>
         {/each}
       </select>
 
-      <button onclick={swapLanguages} class="swap-btn">⇄</button>
+      <button
+        data-testid="swap-btn"
+        onclick={swapLanguages}
+        class="bg-washi-warm text-ink-muted hover:text-ink flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-200 text-lg transition-all hover:border-stone-300 hover:bg-stone-100 active:scale-95"
+        aria-label="言語を入れ替え"
+      >
+        ⇄
+      </button>
 
-      <select bind:value={targetLang}>
+      <select
+        bind:value={targetLang}
+        class="bg-washi-warm text-ink-light focus:border-accent focus:ring-accent/20 flex-1 rounded-lg border border-stone-200 px-4 py-2.5 text-sm font-medium transition-colors focus:ring-2 focus:outline-none"
+      >
         {#each languages as lang (lang.code)}
           <option value={lang.code}>{lang.name}</option>
         {/each}
       </select>
     </div>
 
-    <!-- テキストエリア -->
-    <div class="text-areas">
-      <div class="text-area-wrapper">
-        <label>原文</label>
+    <!-- Text areas -->
+    <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+      <div class="flex flex-col gap-1.5">
+        <label class="text-ink-muted text-xs font-semibold tracking-wide uppercase">原文</label>
         <textarea
           bind:value={originalText}
           placeholder="翻訳するテキストを入力してください"
           rows="8"
+          class="font-body text-ink focus:border-accent focus:ring-accent/20 resize-y rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm leading-relaxed transition-colors placeholder:text-stone-400 focus:ring-2 focus:outline-none"
         ></textarea>
       </div>
 
-      <div class="text-area-wrapper">
-        <label>訳文</label>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-ink-muted text-xs font-semibold tracking-wide uppercase">訳文</label>
         <textarea
           bind:value={translatedText}
           placeholder="翻訳結果がここに表示されます"
           rows="8"
           readonly
+          class="font-body text-ink focus:border-accent focus:ring-accent/20 resize-y rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm leading-relaxed transition-colors placeholder:text-stone-400 focus:ring-2 focus:outline-none"
         ></textarea>
       </div>
     </div>
 
-    <!-- 翻訳ボタン -->
-    <button onclick={translate} class="translate-btn" disabled={isTranslating}>
-      {isTranslating ? '翻訳中...' : '翻訳'}
+    <!-- Translate button -->
+    <button
+      data-testid="translate-btn"
+      onclick={translate}
+      disabled={isTranslating}
+      class="bg-accent hover:bg-accent-hover focus:ring-accent/30 w-full rounded-lg px-6 py-3 text-sm font-semibold tracking-wide text-white transition-all focus:ring-2 focus:ring-offset-2 focus:outline-none active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500"
+    >
+      {isTranslating ? '翻訳中...' : '翻訳する'}
     </button>
 
-    <!-- エラーメッセージ -->
+    <!-- Error message -->
     {#if errorMessage}
-      <div class="error">{errorMessage}</div>
+      <div
+        class="bg-danger-light text-danger mt-4 rounded-lg border border-red-200 px-4 py-3 text-sm"
+      >
+        {errorMessage}
+      </div>
     {/if}
-  </div>
+  </section>
 
-  <!-- 履歴 -->
-  <div class="history-panel">
-    <h2>翻訳履歴</h2>
+  <!-- History Panel -->
+  <section
+    data-testid="history-panel"
+    class="bg-washi rounded-2xl border border-stone-200 p-6 shadow-sm sm:p-8"
+  >
+    <h2 class="font-display text-ink text-xl font-semibold">翻訳履歴</h2>
 
-    <div class="history-controls">
+    <!-- Search & clear -->
+    <div class="mt-4 mb-6 flex gap-3">
       <input
         type="text"
         bind:value={searchKeyword}
         oninput={loadHistory}
         placeholder="履歴を検索..."
+        class="text-ink focus:border-accent focus:ring-accent/20 flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm transition-colors placeholder:text-stone-400 focus:ring-2 focus:outline-none"
       />
-      <button onclick={clearAllHistory}>全て削除</button>
+      <button
+        onclick={clearAllHistory}
+        class="text-danger hover:border-danger hover:bg-danger-light shrink-0 rounded-lg border border-stone-200 px-4 py-2.5 text-xs font-medium transition-colors"
+      >
+        全て削除
+      </button>
     </div>
 
-    <div class="history-list">
+    <!-- History list -->
+    <div class="flex flex-col gap-3">
       {#each history as item (item.id)}
         <div
-          class="history-item"
           onclick={() => restoreFromHistory(item)}
           onkeydown={(e: KeyboardEvent) => {
             if (e.key === 'Enter' || e.key === ' ') restoreFromHistory(item);
           }}
           role="button"
           tabindex="0"
+          class="group focus:ring-accent/20 cursor-pointer rounded-xl border border-stone-200 bg-white p-4 transition-all hover:border-stone-300 hover:shadow-sm focus:ring-2 focus:outline-none"
         >
-          <div class="history-content">
-            <div class="history-text">
-              <strong>{item.source_lang} → {item.target_lang}</strong>
-              <p>{item.original_text}</p>
-              <p class="translated">{item.translated_text}</p>
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <span
+                class="text-ink-muted inline-block rounded-md bg-stone-100 px-2 py-0.5 text-xs font-medium"
+              >
+                {item.source_lang} → {item.target_lang}
+              </span>
+              <p class="text-ink mt-2 line-clamp-2 text-sm leading-relaxed">{item.original_text}</p>
+              <p class="text-ink-muted mt-1 line-clamp-2 text-sm leading-relaxed">
+                {item.translated_text}
+              </p>
             </div>
-            <div class="history-meta">
-              <span>{new Date(item.created_at).toLocaleString('ja-JP')}</span>
+            <div class="flex shrink-0 flex-col items-end gap-2">
+              <span class="text-xs text-stone-400">
+                {new Date(item.created_at).toLocaleString('ja-JP')}
+              </span>
               <button
                 onclick={(e: MouseEvent) => {
                   e.stopPropagation();
                   deleteHistoryItem(item.id);
                 }}
-                class="delete-btn"
+                class="hover:bg-danger-light hover:text-danger rounded-md px-2.5 py-1 text-xs text-stone-400 opacity-0 transition-all group-hover:opacity-100"
               >
                 削除
               </button>
@@ -246,218 +296,5 @@
         </div>
       {/each}
     </div>
-  </div>
+  </section>
 </main>
-
-<style>
-  :global(body) {
-    margin: 0;
-    padding: 20px;
-    font-family:
-      -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
-      'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-    background: #f5f5f5;
-  }
-
-  main {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  h1 {
-    text-align: center;
-    color: #333;
-  }
-
-  .translation-panel {
-    background: white;
-    padding: 24px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    margin-bottom: 24px;
-  }
-
-  .language-select {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-    align-items: center;
-  }
-
-  select {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-  }
-
-  .swap-btn {
-    padding: 8px 16px;
-    background: #f0f0f0;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-  }
-
-  .swap-btn:hover {
-    background: #e0e0e0;
-  }
-
-  .text-areas {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-
-  .text-area-wrapper {
-    display: flex;
-    flex-direction: column;
-  }
-
-  label {
-    margin-bottom: 4px;
-    font-weight: bold;
-    color: #555;
-  }
-
-  textarea {
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    resize: vertical;
-    font-family: inherit;
-  }
-
-  textarea:focus {
-    outline: none;
-    border-color: #4caf50;
-  }
-
-  .translate-btn {
-    width: 100%;
-    padding: 12px;
-    background: #4caf50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-
-  .translate-btn:hover:not(:disabled) {
-    background: #45a049;
-  }
-
-  .translate-btn:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-  }
-
-  .error {
-    margin-top: 12px;
-    padding: 12px;
-    background: #ffebee;
-    color: #c62828;
-    border-radius: 4px;
-  }
-
-  .history-panel {
-    background: white;
-    padding: 24px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .history-controls {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .history-controls input {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-
-  .history-controls button {
-    padding: 8px 16px;
-    background: #f44336;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  .history-controls button:hover {
-    background: #d32f2f;
-  }
-
-  .history-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .history-item {
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .history-item:hover {
-    background: #f5f5f5;
-  }
-
-  .history-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-  }
-
-  .history-text {
-    flex: 1;
-  }
-
-  .history-text p {
-    margin: 4px 0;
-  }
-
-  .history-text .translated {
-    color: #666;
-  }
-
-  .history-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-end;
-  }
-
-  .history-meta span {
-    font-size: 12px;
-    color: #999;
-  }
-
-  .delete-btn {
-    padding: 4px 12px;
-    background: #f44336;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-  }
-
-  .delete-btn:hover {
-    background: #d32f2f;
-  }
-</style>

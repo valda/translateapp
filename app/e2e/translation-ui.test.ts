@@ -18,7 +18,7 @@ test.describe('翻訳UIインタラクション', () => {
     await expect(textarea).toHaveValue('こんにちは');
 
     // 言語入れ替えボタンでソース・ターゲットが入れ替わることを確認
-    const swapBtn = page.locator('button.swap-btn');
+    const swapBtn = page.locator('[data-testid="swap-btn"]');
     await swapBtn.click();
     await expect(sourceSelect).toHaveValue('en');
     await expect(targetSelect).toHaveValue('ja');
