@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TranslationRequestSchema, HistoryCreateSchema } from './schemas';
+import { TranslationRequestSchema, HistoryCreateSchema, SettingsUpdateSchema } from './schemas';
 
 describe('TranslationRequestSchema', () => {
   it('正常な値をパースできる', () => {
@@ -72,6 +72,49 @@ describe('HistoryCreateSchema', () => {
       translated_text: '',
       source_lang: 'en',
       target_lang: 'ja',
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('SettingsUpdateSchema', () => {
+  it('正常なURLとモデル名をパースできる', () => {
+    const result = SettingsUpdateSchema.safeParse({
+      ollama_base_url: 'http://localhost:11434',
+      ollama_model: 'translategemma:12b',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('URLのみの部分更新を許可する', () => {
+    const result = SettingsUpdateSchema.safeParse({
+      ollama_base_url: 'http://192.168.1.1:11434',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('モデル名のみの部分更新を許可する', () => {
+    const result = SettingsUpdateSchema.safeParse({
+      ollama_model: 'gemma2:2b',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('空オブジェクトを許可する', () => {
+    const result = SettingsUpdateSchema.safeParse({});
+    expect(result.success).toBe(true);
+  });
+
+  it('不正なURLを拒否する', () => {
+    const result = SettingsUpdateSchema.safeParse({
+      ollama_base_url: 'not-a-url',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('空文字のモデル名を拒否する', () => {
+    const result = SettingsUpdateSchema.safeParse({
+      ollama_model: '',
     });
     expect(result.success).toBe(false);
   });

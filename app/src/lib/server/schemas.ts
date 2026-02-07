@@ -12,3 +12,8 @@ export const HistoryCreateSchema = z.object({
   source_lang: z.string().min(1),
   target_lang: z.string().min(1),
 });
+
+export const SettingsUpdateSchema = z.object({
+  ollama_base_url: z.string().url().optional(),
+  ollama_model: z.string().min(1).optional(),
+});

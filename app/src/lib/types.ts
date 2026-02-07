@@ -15,3 +15,29 @@ export interface TranslationResponse {
   success: boolean;
   error_message?: string | null;
 }
+
+export type SettingSource = 'env' | 'db' | 'default';
+
+export interface AppSettings {
+  ollama_base_url: string;
+  ollama_model: string;
+  ollama_base_url_source: SettingSource;
+  ollama_model_source: SettingSource;
+}
+
+export interface SettingsResponse {
+  settings: AppSettings;
+  connection_ok: boolean;
+}
+
+export interface DetectResponse {
+  success: boolean;
+  url?: string;
+  message: string;
+}
+
+export interface ModelsResponse {
+  success: boolean;
+  models: string[];
+  error_message?: string;
+}

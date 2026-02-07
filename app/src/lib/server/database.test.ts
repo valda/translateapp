@@ -5,6 +5,10 @@ import {
   searchHistory,
   deleteHistory,
   deleteAllHistory,
+  getSetting,
+  setSetting,
+  getAllSettings,
+  deleteSetting,
 } from './database';
 
 beforeEach(() => {
@@ -128,5 +132,46 @@ describe('deleteAllHistory', () => {
     });
     deleteAllHistory();
     expect(getAllHistory()).toHaveLength(0);
+  });
+});
+
+describe('settings CRUD', () => {
+  beforeEach(() => {
+    deleteSetting('test_key');
+    deleteSetting('key1');
+    deleteSetting('key2');
+  });
+
+  it('未設定のキーはnullを返す', () => {
+    expect(getSetting('nonexistent')).toBeNull();
+  });
+
+  it('設定を保存して取得できる', () => {
+    setSetting('test_key', 'test_value');
+    expect(getSetting('test_key')).toBe('test_value');
+  });
+
+  it('既存キーを上書きできる', () => {
+    setSetting('test_key', 'value1');
+    setSetting('test_key', 'value2');
+    expect(getSetting('test_key')).toBe('value2');
+  });
+
+  it('getAllSettingsで全設定を取得できる', () => {
+    setSetting('key1', 'val1');
+    setSetting('key2', 'val2');
+    const all = getAllSettings();
+    expect(all['key1']).toBe('val1');
+    expect(all['key2']).toBe('val2');
+  });
+
+  it('deleteSettingで設定を削除できる', () => {
+    setSetting('test_key', 'value');
+    expect(deleteSetting('test_key')).toBe(true);
+    expect(getSetting('test_key')).toBeNull();
+  });
+
+  it('存在しないキーの削除はfalseを返す', () => {
+    expect(deleteSetting('nonexistent')).toBe(false);
   });
 });

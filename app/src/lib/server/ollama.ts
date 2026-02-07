@@ -1,12 +1,31 @@
 import { env } from '$env/dynamic/private';
 import { LANGUAGE_NAMES } from './constants';
+import { getSetting } from './database';
+import type { SettingSource } from '$lib/types';
 
-function getBaseUrl(): string {
-  return env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
+export const DEFAULT_BASE_URL = 'http://127.0.0.1:11434';
+export const DEFAULT_MODEL = 'translategemma:12b';
+
+export function getBaseUrl(): string {
+  if (env.OLLAMA_BASE_URL) return env.OLLAMA_BASE_URL;
+  return getSetting('ollama_base_url') || DEFAULT_BASE_URL;
 }
 
-function getModel(): string {
-  return env.OLLAMA_MODEL || 'translategemma:12b';
+export function getModel(): string {
+  if (env.OLLAMA_MODEL) return env.OLLAMA_MODEL;
+  return getSetting('ollama_model') || DEFAULT_MODEL;
+}
+
+export function getBaseUrlSource(): SettingSource {
+  if (env.OLLAMA_BASE_URL) return 'env';
+  if (getSetting('ollama_base_url')) return 'db';
+  return 'default';
+}
+
+export function getModelSource(): SettingSource {
+  if (env.OLLAMA_MODEL) return 'env';
+  if (getSetting('ollama_model')) return 'db';
+  return 'default';
 }
 
 function createTranslationPrompt(text: string, sourceLang: string, targetLang: string): string {

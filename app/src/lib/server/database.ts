@@ -30,6 +30,14 @@ function getDb(): Database.Database {
     )
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   return db;
 }
 
@@ -80,4 +88,40 @@ export function deleteHistory(id: number): boolean {
 export function deleteAllHistory(): void {
   const d = getDb();
   d.prepare('DELETE FROM history').run();
+}
+
+// --- Settings CRUD ---
+
+export function getSetting(key: string): string | null {
+  const d = getDb();
+  const row = d.prepare('SELECT value FROM settings WHERE key = ?').get(key) as
+    | { value: string }
+    | undefined;
+  return row?.value ?? null;
+}
+
+export function setSetting(key: string, value: string): void {
+  const d = getDb();
+  d.prepare(
+    'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP',
+  ).run(key, value);
+}
+
+export function getAllSettings(): Record<string, string> {
+  const d = getDb();
+  const rows = d.prepare('SELECT key, value FROM settings').all() as {
+    key: string;
+    value: string;
+  }[];
+  const result: Record<string, string> = {};
+  for (const row of rows) {
+    result[row.key] = row.value;
+  }
+  return result;
+}
+
+export function deleteSetting(key: string): boolean {
+  const d = getDb();
+  const result = d.prepare('DELETE FROM settings WHERE key = ?').run(key);
+  return result.changes > 0;
 }
