@@ -13,7 +13,7 @@ export interface TranslationResponse {
   source_lang: string;
   target_lang: string;
   success: boolean;
-  error_message?: string | null;
+  error_message?: string;
 }
 
 export type SettingSource = 'env' | 'db' | 'default';

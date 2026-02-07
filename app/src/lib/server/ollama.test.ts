@@ -23,7 +23,7 @@ describe('translateText', () => {
 
     expect(mockFetch).toHaveBeenCalledOnce();
     const [url, options] = mockFetch.mock.calls[0];
-    expect(url).toBe('http://localhost:11434/api/generate');
+    expect(url).toBe('http://127.0.0.1:11434/api/generate');
     expect(options.method).toBe('POST');
 
     const body = JSON.parse(options.body);
@@ -65,7 +65,7 @@ describe('translateText', () => {
     const typeError = new TypeError('fetch failed');
     mockFetch.mockRejectedValueOnce(typeError);
 
-    await expect(translateText('Hello', 'en', 'ja')).rejects.toThrow('http://localhost:11434');
+    await expect(translateText('Hello', 'en', 'ja')).rejects.toThrow('http://127.0.0.1:11434');
   });
 
   it('zh-Hansなど特殊コードでプロンプトが正しい', async () => {

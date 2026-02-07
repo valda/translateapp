@@ -69,12 +69,16 @@ export function getAllHistory(): HistoryItem[] {
   return d.prepare('SELECT * FROM history ORDER BY id DESC').all() as HistoryItem[];
 }
 
+function escapeLikePattern(pattern: string): string {
+  return pattern.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
 export function searchHistory(keyword: string): HistoryItem[] {
   const d = getDb();
-  const pattern = `%${keyword}%`;
+  const pattern = `%${escapeLikePattern(keyword)}%`;
   return d
     .prepare(
-      'SELECT * FROM history WHERE original_text LIKE ? OR translated_text LIKE ? ORDER BY id DESC',
+      "SELECT * FROM history WHERE original_text LIKE ? ESCAPE '\\' OR translated_text LIKE ? ESCAPE '\\' ORDER BY id DESC",
     )
     .all(pattern, pattern) as HistoryItem[];
 }

@@ -11,11 +11,5 @@ export const POST: RequestHandler = async () => {
     setSetting('ollama_base_url', result.url);
   }
 
-  const response: DetectResponse = {
-    success: result.success,
-    url: result.url,
-    message: result.message,
-  };
-
-  return json(response);
+  return json(result satisfies DetectResponse);
 };

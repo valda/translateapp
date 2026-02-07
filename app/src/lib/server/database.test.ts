@@ -97,6 +97,23 @@ describe('searchHistory', () => {
     const results = searchHistory('hello');
     expect(results).toHaveLength(1);
   });
+
+  it('%や_を含む検索語をエスケープして検索できる', () => {
+    createHistory({
+      original_text: '100% complete',
+      translated_text: '100%完了',
+      source_lang: 'en',
+      target_lang: 'ja',
+    });
+    // '%'はワイルドカードではなくリテラルとして検索される
+    const results = searchHistory('100%');
+    expect(results).toHaveLength(1);
+    expect(results[0].original_text).toBe('100% complete');
+
+    // '_'もリテラルとして検索される
+    const noResults = searchHistory('100_');
+    expect(noResults).toHaveLength(0);
+  });
 });
 
 describe('deleteHistory', () => {

@@ -2,19 +2,8 @@ import { readFileSync } from 'fs';
 import { execSync } from 'child_process';
 
 export async function probeOllama(url: string): Promise<boolean> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
-
-  try {
-    const response = await fetch(`${url}/api/tags`, {
-      signal: controller.signal,
-    });
-    return response.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timeout);
-  }
+  const result = await testOllamaConnection(url, 3000);
+  return result.ok;
 }
 
 export function isWsl2(): boolean {
@@ -64,13 +53,16 @@ export async function detectOllamaUrl(): Promise<{
   return { success: false, message: 'Ollamaサーバーが見つかりませんでした' };
 }
 
-export async function testOllamaConnection(url: string): Promise<{
+export async function testOllamaConnection(
+  url: string,
+  timeoutMs = 5000,
+): Promise<{
   ok: boolean;
   models: string[];
   error?: string;
 }> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(`${url}/api/tags`, {

@@ -4,7 +4,13 @@ import { TranslationRequestSchema } from '$lib/server/schemas';
 import { translateText } from '$lib/server/ollama';
 
 export const POST: RequestHandler = async ({ request }) => {
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'リクエストボディが不正です' }, { status: 400 });
+  }
+
   const parsed = TranslationRequestSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -21,7 +27,6 @@ export const POST: RequestHandler = async ({ request }) => {
       source_lang,
       target_lang,
       success: true,
-      error_message: null,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : '翻訳中にエラーが発生しました';

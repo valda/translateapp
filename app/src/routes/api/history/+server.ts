@@ -18,7 +18,13 @@ export const GET: RequestHandler = async ({ url }) => {
 };
 
 export const POST: RequestHandler = async ({ request }) => {
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'リクエストボディが不正です' }, { status: 400 });
+  }
+
   const parsed = HistoryCreateSchema.safeParse(body);
 
   if (!parsed.success) {
