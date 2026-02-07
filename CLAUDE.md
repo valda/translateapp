@@ -1,0 +1,167 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+A local translation web application using TranslateGemma (via Ollama). The app provides translation between 8 major languages with history management, running entirely locally without external API dependencies.
+
+## Technology Stack
+
+- **Frontend + BFF**: SvelteKit (adapter-node) with `+server.ts` API routes, Bun, **Svelte 5 runes**
+- **Database**: SQLite via `better-sqlite3`
+- **Translation Engine**: Ollama with TranslateGemma:12b model
+- **Testing**: Vitest (unit) + Playwright (E2E)
+- **Environment**: Windows / WSL2 (Linux)
+
+## Prerequisites
+
+- Bun 1.2 or later
+- Ollama must be installed and running
+- TranslateGemma model: `ollama pull translategemma:12b`
+
+## Communication Guidelines
+
+- **応答は日本語で行う**: All responses should be in Japanese when working in this repository
+
+## Environment Variables
+
+`app/.env` で設定:
+
+| 変数名 | デフォルト値 | 説明 |
+|--------|-------------|------|
+| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | OllamaサーバーのURL |
+| `OLLAMA_MODEL` | `translategemma:12b` | 使用するモデル名 |
+| `DB_PATH` | `./data/translation_history.db` | SQLiteデータベースのパス |
+
+コード内では `$env/dynamic/private` を使用（ランタイム読み込み）。
+
+## WSL2 Setup
+
+WSL2環境でWindows側のOllamaを使用する場合:
+
+```bash
+# ゲートウェイIP（= WindowsホストIP）を確認
+ip route show default | awk '{print $3}'
+
+# app/.env の OLLAMA_BASE_URL を設定
+# 例: OLLAMA_BASE_URL=http://172.x.x.1:11434
+```
+
+Windows側で環境変数 `OLLAMA_HOST=0.0.0.0` を設定してOllamaを再起動してください。
+
+## Development Commands
+
+### 起動スクリプト（推奨）
+
+```bash
+# 起動（初回はbun install・.envコピーも自動実行）
+./start.sh
+```
+
+### 手動セットアップ
+
+```bash
+cd app
+bun install
+cp .env.example .env  # 初回のみ
+bun run dev           # Development server
+bun run build         # Production build
+```
+
+### テスト
+
+```bash
+cd app
+bun run test          # Vitest ユニットテスト
+bun run test:e2e      # Playwright E2Eテスト
+bun run test:all      # 全テスト実行
+```
+
+## Directory Structure
+
+```
+translateapp/
+├── app/
+│   ├── src/
+│   │   ├── routes/
+│   │   │   ├── +page.svelte            # メインUI（Svelte 5 runes）
+│   │   │   ├── +layout.ts              # SPA設定
+│   │   │   └── api/
+│   │   │       ├── health/+server.ts    # ヘルスチェック
+│   │   │       ├── translate/+server.ts # 翻訳API
+│   │   │       └── history/
+│   │   │           ├── +server.ts       # 履歴CRUD
+│   │   │           └── [id]/+server.ts  # 個別削除
+│   │   └── lib/
+│   │       ├── server/
+│   │       │   ├── constants.ts         # 言語マップ
+│   │       │   ├── schemas.ts           # Zodバリデーション
+│   │       │   ├── ollama.ts            # Ollamaクライアント
+│   │       │   └── database.ts          # SQLiteデータ層
+│   │       └── types.ts                 # 共有型定義
+│   ├── e2e/                             # Playwright E2Eテスト
+│   ├── data/                            # SQLiteデータベース
+│   └── package.json
+├── start.sh                             # 起動スクリプト (Linux/WSL2)
+├── start.bat                            # 起動スクリプト (Windows)
+├── CLAUDE.md
+└── README.md
+```
+
+## Architecture
+
+### BFF Design (SvelteKit +server.ts)
+
+- **API Routes**: `src/routes/api/` 配下の `+server.ts` で REST API を提供
+- **Ollama Integration**: サーバーサイドで Ollama API を呼び出し（フロントエンドは直接呼ばない）
+- **Database**: `better-sqlite3` による同期 SQLite 操作（WAL モード）
+- **Error Handling**: Ollama 接続エラー時は接続先 URL をエラーメッセージに含める
+
+### Frontend Design
+
+- **SPA**: SvelteKit in single-page application mode (`ssr = false`)
+- **API Communication**: 相対パス fetch（`/api/translate`, `/api/history` 等）
+- **Reactivity**: Svelte 5 runes（`$state()` でリアクティブ状態管理、`onclick` 等のイベント属性構文）
+- **UI Language**: Japanese
+
+### Supported Languages
+
+Priority order: Japanese (ja), English (en), Chinese Simplified (zh-Hans), Korean (ko), French (fr), German (de), Spanish (es), Portuguese (pt)
+
+## Critical: TranslateGemma Prompt Format
+
+TranslateGemma requires this exact prompt structure:
+
+```
+You are a professional {SOURCE_LANG} ({SOURCE_CODE}) to {TARGET_LANG} ({TARGET_CODE}) translator.
+Your goal is to accurately convey the meaning and nuances of the original {SOURCE_LANG} text while adhering to {TARGET_LANG} grammar, vocabulary, and cultural sensitivities.
+Produce only the {TARGET_LANG} translation, without any additional explanations or commentary.
+Please translate the following {SOURCE_LANG} text into {TARGET_LANG}:
+{TEXT}
+```
+
+Where:
+- `{SOURCE_LANG}` and `{TARGET_LANG}` are full language names (e.g., "Japanese", "English")
+- `{SOURCE_CODE}` and `{TARGET_CODE}` are language codes (e.g., "ja", "en")
+- `{TEXT}` is the text to translate
+
+## Pre-commit Rules
+
+コミット前に以下を `app/` ディレクトリで実行し、全てパスすることを確認すること:
+
+```bash
+cd app
+bun run lint          # ESLint チェック（エラー0であること）
+bun run format:check  # Prettier フォーマットチェック（差分なしであること）
+bun run test          # Vitest ユニットテスト（全通過であること）
+```
+
+lint やフォーマットのエラーがある場合は `bun run lint:fix` と `bun run format` で自動修正してからコミットする。
+
+## Key Features
+
+1. **Translation**: Text input → language pair selection → translate button → display result
+2. **Language Swap**: Button to swap source/target languages
+3. **Translation History**: Auto-save on translate, searchable table view, click to restore, delete individual/all
+4. **Loading States**: Show progress during translation (important for long texts)

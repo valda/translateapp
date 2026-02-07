@@ -1,0 +1,34 @@
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# App
+app/node_modules/
+app/.svelte-kit/
+app/build/
+app/dist/
+app/.env
+app/.env.local
+app/data/
+
+# Test artifacts
+app/test-results/
+app/playwright-report/
+app/e2e/.cache/
+app/data/e2e_test.db
+
+# Tools
+.claude/settings.local.json
+.serena/
