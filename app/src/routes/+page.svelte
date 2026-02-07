@@ -19,6 +19,25 @@
   let showSettings = $state(false);
   let connectionOk = $state<boolean | null>(null);
 
+  // コピー状態
+  let copied = $state(false);
+
+  // textarea DOM参照
+  let sourceTextarea = $state<HTMLTextAreaElement>();
+  let resultTextarea = $state<HTMLTextAreaElement>();
+
+  function autoResize(el: HTMLTextAreaElement | undefined) {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
+  async function copyTranslation() {
+    await navigator.clipboard.writeText(translatedText);
+    copied = true;
+    setTimeout(() => (copied = false), 2000);
+  }
+
   // 翻訳を実行
   async function translate() {
     if (!originalText.trim()) {
@@ -145,6 +164,18 @@
     }
   }
 
+  // originalText変更時に原文textareaをリサイズ（履歴復元対応）
+  $effect(() => {
+    void originalText;
+    requestAnimationFrame(() => autoResize(sourceTextarea));
+  });
+
+  // translatedText変更時に訳文textareaをリサイズ
+  $effect(() => {
+    void translatedText;
+    requestAnimationFrame(() => autoResize(resultTextarea));
+  });
+
   // 初期化
   onMount(() => {
     loadHistory();
@@ -152,7 +183,7 @@
   });
 </script>
 
-<main class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+<main class="mx-auto px-4 py-8 sm:px-6 lg:px-8">
   <!-- Header -->
   <header class="mb-10 text-center">
     <div class="flex items-center justify-center gap-3">
@@ -236,23 +267,84 @@
     <!-- Text areas -->
     <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
       <div class="flex flex-col gap-1.5">
-        <label class="text-ink-muted text-xs font-semibold tracking-wide uppercase">原文</label>
+        <div class="flex items-center justify-between">
+          <label class="text-ink-muted text-xs font-semibold tracking-wide uppercase">原文</label>
+          {#if originalText}
+            <button
+              onclick={() => (originalText = '')}
+              class="text-ink-muted hover:text-danger rounded p-0.5 transition-colors"
+              aria-label="クリア"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          {/if}
+        </div>
         <textarea
+          bind:this={sourceTextarea}
           bind:value={originalText}
+          oninput={() => autoResize(sourceTextarea)}
           placeholder="翻訳するテキストを入力してください"
-          rows="8"
-          class="font-body text-ink focus:border-accent focus:ring-accent/20 resize-y rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm leading-relaxed transition-colors placeholder:text-stone-400 focus:ring-2 focus:outline-none"
+          rows="4"
+          class="font-body text-ink focus:border-accent focus:ring-accent/20 max-h-[100dvh] resize-none overflow-hidden rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm leading-relaxed transition-colors placeholder:text-stone-400 focus:ring-2 focus:outline-none"
         ></textarea>
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <label class="text-ink-muted text-xs font-semibold tracking-wide uppercase">訳文</label>
+        <div class="flex items-center justify-between">
+          <label class="text-ink-muted text-xs font-semibold tracking-wide uppercase">訳文</label>
+          {#if translatedText}
+            <button
+              onclick={copyTranslation}
+              class="text-ink-muted hover:text-accent flex items-center gap-1 rounded p-0.5 text-xs transition-colors"
+              aria-label="コピー"
+            >
+              {#if copied}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4 text-green-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <span class="text-green-600">コピー済</span>
+              {:else}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                </svg>
+              {/if}
+            </button>
+          {/if}
+        </div>
         <textarea
+          bind:this={resultTextarea}
           bind:value={translatedText}
           placeholder="翻訳結果がここに表示されます"
-          rows="8"
+          rows="4"
           readonly
-          class="font-body text-ink focus:border-accent focus:ring-accent/20 resize-y rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm leading-relaxed transition-colors placeholder:text-stone-400 focus:ring-2 focus:outline-none"
+          class="font-body text-ink focus:border-accent focus:ring-accent/20 max-h-[100dvh] resize-none overflow-hidden rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm leading-relaxed transition-colors placeholder:text-stone-400 focus:ring-2 focus:outline-none"
         ></textarea>
       </div>
     </div>
