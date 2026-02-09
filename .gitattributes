@@ -1,0 +1,5 @@
+# Windows batch files always use CRLF
+*.bat text eol=crlf
+
+# Shell scripts always use LF
+*.sh text eol=lf
