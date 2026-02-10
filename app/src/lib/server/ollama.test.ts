@@ -16,7 +16,7 @@ describe('translateText', () => {
   it('正しいURL・メソッド・bodyでOllama APIを呼ぶ', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ response: 'こんにちは' }),
+      text: async () => JSON.stringify({ response: 'こんにちは' }),
     });
 
     await translateText('Hello', 'en', 'ja');
@@ -37,11 +37,11 @@ describe('translateText', () => {
   it('レスポンスのtrimされた翻訳テキストを返す', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ response: '  こんにちは  \n' }),
+      text: async () => JSON.stringify({ response: '  こんにちは  \n' }),
     });
 
     const result = await translateText('Hello', 'en', 'ja');
-    expect(result).toBe('こんにちは');
+    expect(result.translatedText).toBe('こんにちは');
   });
 
   it('非okレスポンスでエラーをthrowする', async () => {
@@ -71,7 +71,7 @@ describe('translateText', () => {
   it('referenceTextありでプロンプトにReference情報が含まれる', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ response: 'Hello' }),
+      text: async () => JSON.stringify({ response: 'Hello' }),
     });
 
     await translateText('こんにちは', 'ja', 'en', 'Hello there');
@@ -84,7 +84,7 @@ describe('translateText', () => {
   it('zh-Hansなど特殊コードでプロンプトが正しい', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ response: '你好' }),
+      text: async () => JSON.stringify({ response: '你好' }),
     });
 
     await translateText('Hello', 'en', 'zh-Hans');

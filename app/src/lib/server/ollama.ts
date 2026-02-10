@@ -50,12 +50,18 @@ ${text}`;
   return prompt;
 }
 
+export interface TranslateResult {
+  translatedText: string;
+  prompt: string;
+  rawResponse: string;
+}
+
 export async function translateText(
   text: string,
   sourceLang: string,
   targetLang: string,
   referenceText?: string,
-): Promise<string> {
+): Promise<TranslateResult> {
   const baseUrl = getBaseUrl();
   const model = getModel();
   const prompt = createTranslationPrompt(text, sourceLang, targetLang, referenceText);
@@ -80,8 +86,13 @@ export async function translateText(
       throw new Error(`Ollama API error (${response.status}): ${errorText}`);
     }
 
-    const data = await response.json();
-    return (data.response || '').trim();
+    const rawResponse = await response.text();
+    const data = JSON.parse(rawResponse);
+    return {
+      translatedText: (data.response || '').trim(),
+      prompt,
+      rawResponse,
+    };
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new Error(`翻訳がタイムアウトしました（120秒）。Ollamaサーバー: ${baseUrl}`, {

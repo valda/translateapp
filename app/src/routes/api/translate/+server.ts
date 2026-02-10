@@ -20,13 +20,17 @@ export const POST: RequestHandler = async ({ request }) => {
   const { text, source_lang, target_lang, reference_text } = parsed.data;
 
   try {
-    const translatedText = await translateText(text, source_lang, target_lang, reference_text);
+    const result = await translateText(text, source_lang, target_lang, reference_text);
     return json({
       original_text: text,
-      translated_text: translatedText,
+      translated_text: result.translatedText,
       source_lang,
       target_lang,
       success: true,
+      debug: {
+        prompt: result.prompt,
+        raw_response: result.rawResponse,
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : '翻訳中にエラーが発生しました';

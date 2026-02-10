@@ -27,6 +27,18 @@
   let diffSegments = $state<DiffSegment[] | null>(null);
   let isRetranslationMode = $derived(pinnedOriginalText !== null);
 
+  // デバッグログ（蓄積型）
+  interface DebugEntry {
+    timestamp: string;
+    label: string;
+    sections: { heading: string; content: string }[];
+  }
+  let debugLogs = $state<DebugEntry[]>([]);
+
+  function addDebugLog(label: string, sections: { heading: string; content: string }[]) {
+    debugLogs = [{ timestamp: new Date().toLocaleString('ja-JP'), label, sections }, ...debugLogs];
+  }
+
   // コピー状態
   let copied = $state(false);
 
@@ -77,6 +89,12 @@
 
       if (data.success) {
         translatedText = data.translated_text;
+        if (data.debug) {
+          addDebugLog(`翻訳 (${sourceLang}→${targetLang})`, [
+            { heading: '送信プロンプト', content: data.debug.prompt },
+            { heading: 'LLM応答', content: data.debug.raw_response },
+          ]);
+        }
         // 再翻訳モード時はdiff計算
         if (isRetranslationMode && pinnedOriginalText && pinnedOriginalLang) {
           diffSegments = computeDiff(pinnedOriginalText, translatedText, pinnedOriginalLang);
@@ -85,10 +103,16 @@
         await saveHistory(originalText, translatedText, sourceLang, targetLang);
         await loadHistory();
       } else {
-        errorMessage = data.error_message || '翻訳に失敗しました';
+        const msg = data.error_message || '翻訳に失敗しました';
+        errorMessage = msg;
+        addDebugLog(`翻訳エラー (${sourceLang}→${targetLang})`, [
+          { heading: 'エラー', content: msg },
+        ]);
       }
     } catch (error) {
-      errorMessage = `エラー: ${error}`;
+      const msg = `${error}`;
+      errorMessage = `エラー: ${msg}`;
+      addDebugLog('翻訳リクエスト失敗', [{ heading: 'エラー', content: msg }]);
     } finally {
       isTranslating = false;
     }
@@ -190,8 +214,16 @@
       const response = await fetch('/api/settings');
       const data: SettingsResponse = await response.json();
       connectionOk = data.connection_ok;
-    } catch {
+      addDebugLog('接続チェック', [
+        { heading: '結果', content: data.connection_ok ? 'OK' : 'NG' },
+        {
+          heading: '設定',
+          content: `URL: ${data.settings.ollama_base_url} (${data.settings.ollama_base_url_source})\nモデル: ${data.settings.ollama_model} (${data.settings.ollama_model_source})`,
+        },
+      ]);
+    } catch (error) {
       connectionOk = false;
+      addDebugLog('接続チェック失敗', [{ heading: 'エラー', content: `${error}` }]);
     }
   }
 
@@ -449,6 +481,38 @@
       </div>
     {/if}
   </section>
+
+  <!-- Debug Log -->
+  <details class="mb-8">
+    <summary
+      class="text-ink-muted hover:text-ink cursor-pointer text-xs transition-colors select-none"
+    >
+      デバッグログ{debugLogs.length > 0 ? ` (${debugLogs.length})` : ''}
+    </summary>
+    <div class="mt-2 space-y-4">
+      {#each debugLogs as entry, i (entry.timestamp + i)}
+        <div class="rounded-xl border border-stone-200 bg-stone-50 p-4">
+          <div class="text-ink-muted mb-2 flex items-center gap-2 text-xs">
+            <span>{entry.timestamp}</span>
+            <span class="rounded bg-stone-200 px-1.5 py-0.5 font-medium">{entry.label}</span>
+          </div>
+          <div class="space-y-3">
+            {#each entry.sections as section (section.heading)}
+              <div>
+                <h3 class="text-ink-muted mb-1 text-xs font-semibold tracking-wide uppercase">
+                  {section.heading}
+                </h3>
+                <pre
+                  class="overflow-x-auto rounded-lg border border-stone-200 bg-white p-3 text-xs leading-relaxed whitespace-pre-wrap">{section.content}</pre>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {:else}
+        <p class="text-ink-muted py-2 text-xs">ログはまだありません</p>
+      {/each}
+    </div>
+  </details>
 
   <!-- History Panel -->
   <section

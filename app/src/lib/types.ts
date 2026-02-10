@@ -14,6 +14,10 @@ export interface TranslationResponse {
   target_lang: string;
   success: boolean;
   error_message?: string;
+  debug?: {
+    prompt: string;
+    raw_response: string;
+  };
 }
 
 export type SettingSource = 'env' | 'db' | 'default';
