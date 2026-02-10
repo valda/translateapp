@@ -28,25 +28,37 @@ export function getModelSource(): SettingSource {
   return 'default';
 }
 
-function createTranslationPrompt(text: string, sourceLang: string, targetLang: string): string {
+export function createTranslationPrompt(
+  text: string,
+  sourceLang: string,
+  targetLang: string,
+  referenceText?: string,
+): string {
   const sourceLangName = LANGUAGE_NAMES[sourceLang] || sourceLang;
   const targetLangName = LANGUAGE_NAMES[targetLang] || targetLang;
 
-  return `You are a professional ${sourceLangName} (${sourceLang}) to ${targetLangName} (${targetLang}) translator.
+  let prompt = `You are a professional ${sourceLangName} (${sourceLang}) to ${targetLangName} (${targetLang}) translator.
 Your goal is to accurately convey the meaning and nuances of the original ${sourceLangName} text while adhering to ${targetLangName} grammar, vocabulary, and cultural sensitivities.
 Produce only the ${targetLangName} translation, without any additional explanations or commentary.
 Please translate the following ${sourceLangName} text into ${targetLangName}:
 ${text}`;
+
+  if (referenceText) {
+    prompt += `\nReference: The following is the original ${targetLangName} text before translation. Preserve the original wording and style as much as possible where the meaning has not been changed:\n${referenceText}`;
+  }
+
+  return prompt;
 }
 
 export async function translateText(
   text: string,
   sourceLang: string,
   targetLang: string,
+  referenceText?: string,
 ): Promise<string> {
   const baseUrl = getBaseUrl();
   const model = getModel();
-  const prompt = createTranslationPrompt(text, sourceLang, targetLang);
+  const prompt = createTranslationPrompt(text, sourceLang, targetLang, referenceText);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120_000);

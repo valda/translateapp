@@ -17,10 +17,10 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const { text, source_lang, target_lang } = parsed.data;
+  const { text, source_lang, target_lang, reference_text } = parsed.data;
 
   try {
-    const translatedText = await translateText(text, source_lang, target_lang);
+    const translatedText = await translateText(text, source_lang, target_lang, reference_text);
     return json({
       original_text: text,
       translated_text: translatedText,

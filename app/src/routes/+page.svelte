@@ -3,7 +3,9 @@
   import type { HistoryItem, SettingsResponse } from '$lib/types';
   import { LANGUAGES } from '$lib/constants';
   import { connectionStatusColor, connectionStatusTitle } from '$lib/connection-status';
+  import { computeDiff, type DiffSegment } from '$lib/diff-utils';
   import SettingsModal from './SettingsModal.svelte';
+  import PinnedOriginalPane from './PinnedOriginalPane.svelte';
 
   // 状態管理（Svelte 5 runes）
   let originalText = $state('');
@@ -18,6 +20,12 @@
   // 設定モーダル
   let showSettings = $state(false);
   let connectionOk = $state<boolean | null>(null);
+
+  // 再翻訳モード
+  let pinnedOriginalText = $state<string | null>(null);
+  let pinnedOriginalLang = $state<string | null>(null);
+  let diffSegments = $state<DiffSegment[] | null>(null);
+  let isRetranslationMode = $derived(pinnedOriginalText !== null);
 
   // コピー状態
   let copied = $state(false);
@@ -59,6 +67,9 @@
           text: originalText,
           source_lang: sourceLang,
           target_lang: targetLang,
+          ...(isRetranslationMode && pinnedOriginalText
+            ? { reference_text: pinnedOriginalText }
+            : {}),
         }),
       });
 
@@ -66,6 +77,10 @@
 
       if (data.success) {
         translatedText = data.translated_text;
+        // 再翻訳モード時はdiff計算
+        if (isRetranslationMode && pinnedOriginalText && pinnedOriginalLang) {
+          diffSegments = computeDiff(pinnedOriginalText, translatedText, pinnedOriginalLang);
+        }
         // 履歴に保存
         await saveHistory(originalText, translatedText, sourceLang, targetLang);
         await loadHistory();
@@ -83,6 +98,21 @@
   function swapLanguages() {
     [sourceLang, targetLang] = [targetLang, sourceLang];
     [originalText, translatedText] = [translatedText, originalText];
+  }
+
+  // ピン留めして再翻訳モードに入る
+  function pinAndRetranslate() {
+    pinnedOriginalText = originalText;
+    pinnedOriginalLang = sourceLang;
+    diffSegments = null;
+    swapLanguages();
+  }
+
+  // 再翻訳モードを解除
+  function clearRetranslation() {
+    pinnedOriginalText = null;
+    pinnedOriginalLang = null;
+    diffSegments = null;
   }
 
   // 履歴を保存
@@ -121,6 +151,7 @@
 
   // 履歴項目をクリック
   function restoreFromHistory(item: HistoryItem) {
+    clearRetranslation();
     originalText = item.original_text;
     translatedText = item.translated_text;
     sourceLang = item.source_lang;
@@ -163,6 +194,14 @@
       connectionOk = false;
     }
   }
+
+  // 再翻訳モード中にテキスト編集されたらdiffをリセット
+  $effect(() => {
+    if (isRetranslationMode) {
+      void originalText;
+      diffSegments = null;
+    }
+  });
 
   // originalText変更時に原文textareaをリサイズ（履歴復元対応）
   $effect(() => {
@@ -238,7 +277,8 @@
     <div class="mb-6 flex items-center gap-3">
       <select
         bind:value={sourceLang}
-        class="bg-washi-warm text-ink-light focus:border-accent focus:ring-accent/20 flex-1 rounded-lg border border-stone-200 px-4 py-2.5 text-sm font-medium transition-colors focus:ring-2 focus:outline-none"
+        disabled={isRetranslationMode}
+        class="bg-washi-warm text-ink-light focus:border-accent focus:ring-accent/20 flex-1 rounded-lg border border-stone-200 px-4 py-2.5 text-sm font-medium transition-colors focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-stone-100"
       >
         {#each LANGUAGES as lang (lang.code)}
           <option value={lang.code}>{lang.name}</option>
@@ -248,7 +288,8 @@
       <button
         data-testid="swap-btn"
         onclick={swapLanguages}
-        class="bg-washi-warm text-ink-muted hover:text-ink flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-200 text-lg transition-all hover:border-stone-300 hover:bg-stone-100 active:scale-95"
+        disabled={isRetranslationMode}
+        class="bg-washi-warm text-ink-muted hover:text-ink flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-200 text-lg transition-all hover:border-stone-300 hover:bg-stone-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         aria-label="言語を入れ替え"
       >
         ⇄
@@ -256,7 +297,8 @@
 
       <select
         bind:value={targetLang}
-        class="bg-washi-warm text-ink-light focus:border-accent focus:ring-accent/20 flex-1 rounded-lg border border-stone-200 px-4 py-2.5 text-sm font-medium transition-colors focus:ring-2 focus:outline-none"
+        disabled={isRetranslationMode}
+        class="bg-washi-warm text-ink-light focus:border-accent focus:ring-accent/20 flex-1 rounded-lg border border-stone-200 px-4 py-2.5 text-sm font-medium transition-colors focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-stone-100"
       >
         {#each LANGUAGES as lang (lang.code)}
           <option value={lang.code}>{lang.name}</option>
@@ -264,29 +306,64 @@
       </select>
     </div>
 
+    <!-- Pinned original pane -->
+    {#if isRetranslationMode && pinnedOriginalText && pinnedOriginalLang}
+      <PinnedOriginalPane
+        pinnedText={pinnedOriginalText}
+        {diffSegments}
+        onClear={clearRetranslation}
+      />
+    {/if}
+
     <!-- Text areas -->
     <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
       <div class="flex flex-col gap-1.5">
         <div class="flex items-center justify-between">
-          <label class="text-ink-muted text-xs font-semibold tracking-wide uppercase">原文</label>
-          {#if originalText}
-            <button
-              onclick={() => (originalText = '')}
-              class="text-ink-muted hover:text-danger rounded p-0.5 transition-colors"
-              aria-label="クリア"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
+          <label class="text-ink-muted text-xs font-semibold tracking-wide uppercase"
+            >{isRetranslationMode ? '訳文（編集可能）' : '原文'}</label
+          >
+          <div class="flex items-center gap-1">
+            {#if translatedText && !isRetranslationMode}
+              <button
+                onclick={pinAndRetranslate}
+                class="text-ink-muted hover:text-accent rounded p-0.5 transition-colors"
+                aria-label="ピン留めして再翻訳"
+                title="原文をピン留めして再翻訳チェック"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          {/if}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-width="2"
+                    d="M12.0001 20v-4M7.00012 4h9.99998M9.00012 5v5c0 .5523-.46939 1.0045-.94861 1.279-1.43433.8217-2.60135 3.245-2.25635 4.3653.07806.2535.35396.3557.61917.3557H17.5859c.2652 0 .5411-.1022.6192-.3557.3449-1.1204-.8221-3.5436-2.2564-4.3653-.4792-.2745-.9486-.7267-.9486-1.279V5c0-.55228-.4477-1-1-1h-4c-.55226 0-.99998.44772-.99998 1Z"
+                  />
+                </svg>
+              </button>
+            {/if}
+            {#if originalText}
+              <button
+                onclick={() => (originalText = '')}
+                class="text-ink-muted hover:text-danger rounded p-0.5 transition-colors"
+                aria-label="クリア"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            {/if}
+          </div>
         </div>
         <textarea
           bind:this={sourceTextarea}
@@ -300,43 +377,47 @@
 
       <div class="flex flex-col gap-1.5">
         <div class="flex items-center justify-between">
-          <label class="text-ink-muted text-xs font-semibold tracking-wide uppercase">訳文</label>
-          {#if translatedText}
-            <button
-              onclick={copyTranslation}
-              class="text-ink-muted hover:text-accent flex items-center gap-1 rounded p-0.5 text-xs transition-colors"
-              aria-label="コピー"
-            >
-              {#if copied}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4 text-green-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-green-600">コピー済</span>
-              {:else}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                  />
-                </svg>
-              {/if}
-            </button>
-          {/if}
+          <label class="text-ink-muted text-xs font-semibold tracking-wide uppercase"
+            >{isRetranslationMode ? '元言語への再翻訳文' : '訳文'}</label
+          >
+          <div class="flex items-center gap-1">
+            {#if translatedText}
+              <button
+                onclick={copyTranslation}
+                class="text-ink-muted hover:text-accent flex items-center gap-1 rounded p-0.5 text-xs transition-colors"
+                aria-label="コピー"
+              >
+                {#if copied}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 text-green-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-green-600">コピー済</span>
+                {:else}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                {/if}
+              </button>
+            {/if}
+          </div>
         </div>
         <textarea
           bind:this={resultTextarea}

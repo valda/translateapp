@@ -43,6 +43,31 @@ describe('TranslationRequestSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('reference_textなしで後方互換パース成功', () => {
+    const result = TranslationRequestSchema.safeParse({
+      text: 'Hello',
+      source_lang: 'en',
+      target_lang: 'ja',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.reference_text).toBeUndefined();
+    }
+  });
+
+  it('reference_textありでパース成功・値取得', () => {
+    const result = TranslationRequestSchema.safeParse({
+      text: 'Hello',
+      source_lang: 'en',
+      target_lang: 'ja',
+      reference_text: 'こんにちは',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.reference_text).toBe('こんにちは');
+    }
+  });
 });
 
 describe('HistoryCreateSchema', () => {

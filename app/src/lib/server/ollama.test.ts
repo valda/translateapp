@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { translateText } from './ollama';
+import { translateText, createTranslationPrompt } from './ollama';
 
 const mockFetch = vi.fn();
 
@@ -68,6 +68,19 @@ describe('translateText', () => {
     await expect(translateText('Hello', 'en', 'ja')).rejects.toThrow('http://127.0.0.1:11434');
   });
 
+  it('referenceTextありでプロンプトにReference情報が含まれる', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ response: 'Hello' }),
+    });
+
+    await translateText('こんにちは', 'ja', 'en', 'Hello there');
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.prompt).toContain('Reference:');
+    expect(body.prompt).toContain('Hello there');
+  });
+
   it('zh-Hansなど特殊コードでプロンプトが正しい', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -79,5 +92,24 @@ describe('translateText', () => {
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.prompt).toContain('Chinese Simplified');
     expect(body.prompt).toContain('zh-Hans');
+  });
+});
+
+describe('createTranslationPrompt', () => {
+  it('referenceTextなしではReference:を含まない', () => {
+    const prompt = createTranslationPrompt('Hello', 'en', 'ja');
+    expect(prompt).not.toContain('Reference:');
+  });
+
+  it('referenceTextありではtarget言語名と参考テキストを含む', () => {
+    const prompt = createTranslationPrompt('こんにちは', 'ja', 'en', 'Hello there');
+    expect(prompt).toContain('Reference:');
+    expect(prompt).toContain('English');
+    expect(prompt).toContain('Hello there');
+  });
+
+  it('空文字のreferenceTextではReference:を含まない', () => {
+    const prompt = createTranslationPrompt('Hello', 'en', 'ja', '');
+    expect(prompt).not.toContain('Reference:');
   });
 });
