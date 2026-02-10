@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { isNonSpaceSegmented, computeDiff } from './diff-utils';
+import {
+  isNonSpaceSegmented,
+  computeDiff,
+  groupIntoElements,
+  rebuildText,
+  type DiffSegment,
+} from './diff-utils';
 
 describe('isNonSpaceSegmented', () => {
   it('日本語はtrue', () => {
@@ -57,5 +63,204 @@ describe('computeDiff', () => {
     const types = result.map((s) => s.type);
     expect(types).toContain('removed');
     expect(types).toContain('added');
+  });
+});
+
+describe('groupIntoElements', () => {
+  it('全equalならhunkなし', () => {
+    const segments: DiffSegment[] = [{ text: 'hello world', type: 'equal' }];
+    const elements = groupIntoElements(segments);
+    expect(elements).toEqual([{ kind: 'equal', text: 'hello world' }]);
+  });
+
+  it('removed+addedの連続は1つのhunkになる', () => {
+    const segments: DiffSegment[] = [
+      { text: 'The ', type: 'equal' },
+      { text: 'cat', type: 'removed' },
+      { text: 'dog', type: 'added' },
+      { text: ' sat', type: 'equal' },
+    ];
+    const elements = groupIntoElements(segments);
+    expect(elements).toHaveLength(3);
+    expect(elements[0]).toEqual({ kind: 'equal', text: 'The ' });
+    expect(elements[1]).toEqual({
+      kind: 'hunk',
+      hunk: {
+        index: 0,
+        removed: [{ text: 'cat', type: 'removed' }],
+        added: [{ text: 'dog', type: 'added' }],
+      },
+    });
+    expect(elements[2]).toEqual({ kind: 'equal', text: ' sat' });
+  });
+
+  it('standalone removedはadded空のhunkになる', () => {
+    const segments: DiffSegment[] = [
+      { text: 'hello ', type: 'equal' },
+      { text: 'world', type: 'removed' },
+    ];
+    const elements = groupIntoElements(segments);
+    expect(elements).toHaveLength(2);
+    const hunk = elements[1];
+    expect(hunk).toEqual({
+      kind: 'hunk',
+      hunk: { index: 0, removed: [{ text: 'world', type: 'removed' }], added: [] },
+    });
+  });
+
+  it('standalone addedはremoved空のhunkになる', () => {
+    const segments: DiffSegment[] = [
+      { text: 'hello', type: 'equal' },
+      { text: ' world', type: 'added' },
+    ];
+    const elements = groupIntoElements(segments);
+    expect(elements).toHaveLength(2);
+    const hunk = elements[1];
+    expect(hunk).toEqual({
+      kind: 'hunk',
+      hunk: { index: 0, removed: [], added: [{ text: ' world', type: 'added' }] },
+    });
+  });
+
+  it('equal挟みで複数hunkに正しいindexが振られる', () => {
+    const segments: DiffSegment[] = [
+      { text: 'A', type: 'removed' },
+      { text: 'B', type: 'added' },
+      { text: ' mid ', type: 'equal' },
+      { text: 'C', type: 'removed' },
+      { text: 'D', type: 'added' },
+    ];
+    const elements = groupIntoElements(segments);
+    expect(elements).toHaveLength(3);
+    expect(elements[0]).toMatchObject({ kind: 'hunk', hunk: { index: 0 } });
+    expect(elements[2]).toMatchObject({ kind: 'hunk', hunk: { index: 1 } });
+  });
+
+  it('連続する複数removed+複数addedは1つのhunkにまとまる', () => {
+    const segments: DiffSegment[] = [
+      { text: '猫', type: 'removed' },
+      { text: 'が', type: 'removed' },
+      { text: '犬', type: 'added' },
+      { text: 'が', type: 'added' },
+    ];
+    const elements = groupIntoElements(segments);
+    expect(elements).toHaveLength(1);
+    const hunk = elements[0];
+    expect(hunk).toEqual({
+      kind: 'hunk',
+      hunk: {
+        index: 0,
+        removed: [
+          { text: '猫', type: 'removed' },
+          { text: 'が', type: 'removed' },
+        ],
+        added: [
+          { text: '犬', type: 'added' },
+          { text: 'が', type: 'added' },
+        ],
+      },
+    });
+  });
+
+  it('空配列は空結果', () => {
+    expect(groupIntoElements([])).toEqual([]);
+  });
+});
+
+describe('rebuildText', () => {
+  it('revertなしならaddedテキストが採用される', () => {
+    const segments: DiffSegment[] = [
+      { text: 'The ', type: 'equal' },
+      { text: 'cat', type: 'removed' },
+      { text: 'dog', type: 'added' },
+      { text: ' sat', type: 'equal' },
+    ];
+    const elements = groupIntoElements(segments);
+    expect(rebuildText(elements, new Set())).toBe('The dog sat');
+  });
+
+  it('hunkをrevertするとremovedテキストが採用される', () => {
+    const segments: DiffSegment[] = [
+      { text: 'The ', type: 'equal' },
+      { text: 'cat', type: 'removed' },
+      { text: 'dog', type: 'added' },
+      { text: ' sat', type: 'equal' },
+    ];
+    const elements = groupIntoElements(segments);
+    expect(rebuildText(elements, new Set([0]))).toBe('The cat sat');
+  });
+
+  it('standalone removedをrevertすると削除テキストが復元される', () => {
+    const segments: DiffSegment[] = [
+      { text: 'hello ', type: 'equal' },
+      { text: 'world', type: 'removed' },
+    ];
+    const elements = groupIntoElements(segments);
+    expect(rebuildText(elements, new Set())).toBe('hello ');
+    expect(rebuildText(elements, new Set([0]))).toBe('hello world');
+  });
+
+  it('standalone addedをrevertすると追加テキストが除去される', () => {
+    const segments: DiffSegment[] = [
+      { text: 'hello', type: 'equal' },
+      { text: ' world', type: 'added' },
+    ];
+    const elements = groupIntoElements(segments);
+    expect(rebuildText(elements, new Set())).toBe('hello world');
+    expect(rebuildText(elements, new Set([0]))).toBe('hello');
+  });
+
+  it('選択的revert（一部のみ）', () => {
+    const segments: DiffSegment[] = [
+      { text: 'A', type: 'removed' },
+      { text: 'B', type: 'added' },
+      { text: ' ', type: 'equal' },
+      { text: 'C', type: 'removed' },
+      { text: 'D', type: 'added' },
+    ];
+    const elements = groupIntoElements(segments);
+    expect(rebuildText(elements, new Set([0]))).toBe('A D');
+    expect(rebuildText(elements, new Set([1]))).toBe('B C');
+  });
+
+  it('全hunkをrevertすると原文と完全一致する', () => {
+    const original = '猫が座った。犬は走った。';
+    const retranslated = '犬が座った。猫は走った。';
+    const segments = computeDiff(original, retranslated, 'ja');
+    const elements = groupIntoElements(segments);
+    const allHunkIndices = new Set<number>();
+    for (const el of elements) {
+      if (el.kind === 'hunk') allHunkIndices.add(el.hunk.index);
+    }
+    expect(rebuildText(elements, allHunkIndices)).toBe(original);
+  });
+
+  it('全hunkをrevertすると原文と完全一致する（英語）', () => {
+    const original = 'The cat sat on the mat.';
+    const retranslated = 'A dog sat on a rug.';
+    const segments = computeDiff(original, retranslated, 'en');
+    const elements = groupIntoElements(segments);
+    const allHunkIndices = new Set<number>();
+    for (const el of elements) {
+      if (el.kind === 'hunk') allHunkIndices.add(el.hunk.index);
+    }
+    expect(rebuildText(elements, allHunkIndices)).toBe(original);
+  });
+
+  it('CJK複数セグメントhunkのrevert', () => {
+    const segments: DiffSegment[] = [
+      { text: '猫', type: 'removed' },
+      { text: 'が', type: 'removed' },
+      { text: '犬', type: 'added' },
+      { text: 'が', type: 'added' },
+      { text: '走った', type: 'equal' },
+    ];
+    const elements = groupIntoElements(segments);
+    expect(rebuildText(elements, new Set([0]))).toBe('猫が走った');
+    expect(rebuildText(elements, new Set())).toBe('犬が走った');
+  });
+
+  it('空elementsは空文字列', () => {
+    expect(rebuildText([], new Set())).toBe('');
   });
 });

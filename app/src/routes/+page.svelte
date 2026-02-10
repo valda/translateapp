@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
   import type { HistoryItem, SettingsResponse } from '$lib/types';
   import { LANGUAGES } from '$lib/constants';
   import { connectionStatusColor, connectionStatusTitle } from '$lib/connection-status';
-  import { computeDiff, type DiffSegment } from '$lib/diff-utils';
+  import { computeDiff, groupIntoElements, rebuildText, type DiffSegment } from '$lib/diff-utils';
   import SettingsModal from './SettingsModal.svelte';
   import PinnedOriginalPane from './PinnedOriginalPane.svelte';
 
@@ -25,6 +26,11 @@
   let pinnedOriginalText = $state<string | null>(null);
   let pinnedOriginalLang = $state<string | null>(null);
   let diffSegments = $state<DiffSegment[] | null>(null);
+  let diffElements = $derived(diffSegments ? groupIntoElements(diffSegments) : null);
+  let revertedHunks = new SvelteSet<number>();
+  let hunkCount = $derived(
+    diffElements ? diffElements.filter((el) => el.kind === 'hunk').length : 0,
+  );
   let isRetranslationMode = $derived(pinnedOriginalText !== null);
 
   // デバッグログ（蓄積型）
@@ -98,6 +104,7 @@
         // 再翻訳モード時はdiff計算
         if (isRetranslationMode && pinnedOriginalText && pinnedOriginalLang) {
           diffSegments = computeDiff(pinnedOriginalText, translatedText, pinnedOriginalLang);
+          revertedHunks.clear();
         }
         // 履歴に保存
         await saveHistory(originalText, translatedText, sourceLang, targetLang);
@@ -137,6 +144,28 @@
     pinnedOriginalText = null;
     pinnedOriginalLang = null;
     diffSegments = null;
+    revertedHunks.clear();
+  }
+
+  // Hunk revert操作
+  function toggleHunkRevert(hunkIndex: number) {
+    if (revertedHunks.has(hunkIndex)) revertedHunks.delete(hunkIndex);
+    else revertedHunks.add(hunkIndex);
+    if (diffElements) translatedText = rebuildText(diffElements, revertedHunks);
+  }
+
+  function revertAllHunks() {
+    if (!diffElements) return;
+    revertedHunks.clear();
+    for (const el of diffElements) {
+      if (el.kind === 'hunk') revertedHunks.add(el.hunk.index);
+    }
+    translatedText = rebuildText(diffElements, revertedHunks);
+  }
+
+  function resetAllReverts() {
+    revertedHunks.clear();
+    if (diffElements) translatedText = rebuildText(diffElements, revertedHunks);
   }
 
   // 履歴を保存
@@ -232,6 +261,7 @@
     if (isRetranslationMode) {
       void originalText;
       diffSegments = null;
+      revertedHunks.clear();
     }
   });
 
@@ -342,7 +372,12 @@
     {#if isRetranslationMode && pinnedOriginalText && pinnedOriginalLang}
       <PinnedOriginalPane
         pinnedText={pinnedOriginalText}
-        {diffSegments}
+        {diffElements}
+        {revertedHunks}
+        {hunkCount}
+        onToggleHunk={toggleHunkRevert}
+        onRevertAll={revertAllHunks}
+        onResetAll={resetAllReverts}
         onClear={clearRetranslation}
       />
     {/if}
