@@ -44,6 +44,12 @@ lint やフォーマットのエラーがある場合は `bun run lint:fix` と 
 - **Reactivity**: Svelte 5 runes（`$state()` でリアクティブ状態管理、`onclick` 等のイベント属性構文）
 - **UI Language**: Japanese
 
+### Re-translation Verification & Debug
+
+- **diff-utils**: `src/lib/diff-utils.ts` — 言語認識型セグメンテーション（日本語→文字単位、英語→単語単位）によるインラインdiff生成
+- **PinnedOriginalPane**: 再翻訳確認モードのdiff表示・hunkクリックrevert用コンポーネント
+- **翻訳APIの拡張**: `POST /api/translate` に `reference_text` パラメータ（再翻訳時の参考テキスト）、レスポンスに `prompt`/`raw_response` フィールド（デバッグ用）
+
 ### Settings Priority
 
 ```
