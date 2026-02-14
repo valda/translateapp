@@ -121,3 +121,13 @@ translateapp/
 3. 設定画面の「接続テスト」ボタンで接続状態を確認
 4. WSL2環境の場合は「自動検出」ボタンを試す
 5. エラーメッセージに表示される接続先URLを確認
+
+### LM Studio で API error (400): "Conversations must start with a user prompt"
+
+TranslateGemma はチャットモデルではないため、デフォルトのチャットテンプレートが `/v1/chat/completions` のメッセージ形式に対応していないことが原因です。LM Studio 側でモデルのテンプレートと停止トークンを設定してください。
+
+1. LM Studio の **My Models** からロード中の TranslateGemma モデルを選択
+2. **モデル設定 > Prompt Template** を開き、チャットテンプレート（Jinja）を設定する
+   - 本アプリの設定画面（OpenAI互換 > サーバー設定ガイド）にテンプレート全文とコピーボタンがあります
+3. **追加停止トークン**に `<end_of_turn>` と `<eos>` を追加する
+4. 設定を保存してモデルをリロードする

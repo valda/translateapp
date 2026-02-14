@@ -210,8 +210,7 @@ Please translate the following {{ src_name }} text into {{ tgt_name }}:
         settingsModelSource = data.settings.ollama_model_source;
         openaiCompatUrlSource = data.settings.openai_compat_base_url_source;
         openaiCompatModelSource = data.settings.openai_compat_model_source;
-        settingsMessage = '設定を保存しました';
-        settingsMessageType = 'success';
+        onClose();
       } else {
         const err = await response.json();
         settingsMessage = `保存に失敗: ${err.error}`;
