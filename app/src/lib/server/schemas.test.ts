@@ -143,4 +143,53 @@ describe('SettingsUpdateSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('translate_providerにollamaを受け付ける', () => {
+    const result = SettingsUpdateSchema.safeParse({
+      translate_provider: 'ollama',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('translate_providerにopenai_compatを受け付ける', () => {
+    const result = SettingsUpdateSchema.safeParse({
+      translate_provider: 'openai_compat',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('translate_providerに無効な値を拒否する', () => {
+    const result = SettingsUpdateSchema.safeParse({
+      translate_provider: 'invalid',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('openai_compat_base_urlに正常なURLを受け付ける', () => {
+    const result = SettingsUpdateSchema.safeParse({
+      openai_compat_base_url: 'http://localhost:1234',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('openai_compat_base_urlに不正なURLを拒否する', () => {
+    const result = SettingsUpdateSchema.safeParse({
+      openai_compat_base_url: 'not-a-url',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('openai_compat_modelに正常な値を受け付ける', () => {
+    const result = SettingsUpdateSchema.safeParse({
+      openai_compat_model: 'some-model',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('openai_compat_modelに空文字を拒否する', () => {
+    const result = SettingsUpdateSchema.safeParse({
+      openai_compat_model: '',
+    });
+    expect(result.success).toBe(false);
+  });
 });

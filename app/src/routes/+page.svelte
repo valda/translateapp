@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
-  import type { HistoryItem, SettingsResponse } from '$lib/types';
+  import type { HistoryItem, SettingsResponse, ProviderType } from '$lib/types';
   import { LANGUAGES } from '$lib/constants';
   import { connectionStatusColor, connectionStatusTitle } from '$lib/connection-status';
   import { computeDiff, groupIntoElements, rebuildText, type DiffSegment } from '$lib/diff-utils';
@@ -21,6 +21,7 @@
   // 設定モーダル
   let showSettings = $state(false);
   let connectionOk = $state<boolean | null>(null);
+  let activeProvider = $state<ProviderType>('ollama');
 
   // 再翻訳モード
   let pinnedOriginalText = $state<string | null>(null);
@@ -243,11 +244,27 @@
       const response = await fetch('/api/settings');
       const data: SettingsResponse = await response.json();
       connectionOk = data.connection_ok;
+      activeProvider = data.settings.translate_provider;
+      const p = data.settings.translate_provider;
+      const url =
+        p === 'openai_compat'
+          ? data.settings.openai_compat_base_url
+          : data.settings.ollama_base_url;
+      const urlSrc =
+        p === 'openai_compat'
+          ? data.settings.openai_compat_base_url_source
+          : data.settings.ollama_base_url_source;
+      const model =
+        p === 'openai_compat' ? data.settings.openai_compat_model : data.settings.ollama_model;
+      const modelSrc =
+        p === 'openai_compat'
+          ? data.settings.openai_compat_model_source
+          : data.settings.ollama_model_source;
       addDebugLog('接続チェック', [
         { heading: '結果', content: data.connection_ok ? 'OK' : 'NG' },
         {
           heading: '設定',
-          content: `URL: ${data.settings.ollama_base_url} (${data.settings.ollama_base_url_source})\nモデル: ${data.settings.ollama_model} (${data.settings.ollama_model_source})`,
+          content: `プロバイダー: ${p}\nURL: ${url} (${urlSrc})\nモデル: ${model} (${modelSrc})`,
         },
       ]);
     } catch (error) {
@@ -295,7 +312,7 @@
         <!-- 接続ステータス -->
         <span
           class="inline-block h-2.5 w-2.5 rounded-full {connectionStatusColor(connectionOk)}"
-          title={connectionStatusTitle(connectionOk)}
+          title={connectionStatusTitle(connectionOk, activeProvider)}
         ></span>
         <!-- 歯車アイコン -->
         <button

@@ -6,17 +6,19 @@ TranslateGemmaを利用したローカル翻訳Webアプリケーション。外
 
 - **SvelteKit** (Svelte 5 runes) — フロントエンド + BFF（API Routes）
 - **SQLite** (`better-sqlite3`) — 翻訳履歴・設定の永続化
-- **Ollama** + TranslateGemma:12b — ローカル翻訳エンジン
+- **Ollama** + TranslateGemma:12b — ローカル翻訳エンジン（デフォルト）
+- **OpenAI互換サーバー**（LM Studio等） — 代替翻訳エンジン
 - **Bun** — パッケージマネージャー / ランタイム
 - **Vitest** + **Playwright** — テストフレームワーク
 
 ## 前提条件
 
 - Bun 1.2以上
-- Ollama（インストール済み・起動済み）
-- TranslateGemmaモデル（マシンスペックに応じて選択）
-  - 軽量: `ollama pull translategemma:4b`
-  - 高品質: `ollama pull translategemma:12b`
+- 翻訳エンジン（いずれか）:
+  - **Ollama**（デフォルト）: インストール済み・起動済み
+    - 軽量: `ollama pull translategemma:4b`
+    - 高品質: `ollama pull translategemma:12b`
+  - **OpenAI互換サーバー**: LM Studio等のOpenAI互換API (`/v1/chat/completions`) を提供するサーバー
 
 ## セットアップ & 起動
 
@@ -46,14 +48,15 @@ bun run test:all      # 全テスト実行
 
 ## 設定
 
-Ollama接続先URLとモデル名は、Web UIのヘッダーにある歯車アイコンから設定できます。設定はSQLiteに保存され、サーバー再起動なしで反映されます。
+翻訳プロバイダー・接続先URL・モデル名は、Web UIのヘッダーにある歯車アイコンから設定できます。設定はSQLiteに保存され、サーバー再起動なしで反映されます。
 
 ### 設定画面の機能
 
-- **Ollama URL**: 接続先URLの入力・自動検出
-- **モデル選択**: Ollamaから取得したモデル一覧のドロップダウン（取得できない場合はテキスト入力）
+- **翻訳プロバイダー**: Ollama / OpenAI互換 の切り替え
+- **接続先URL**: プロバイダーごとの接続先URL入力
+- **モデル選択**: サーバーから取得したモデル一覧のドロップダウン（取得できない場合はテキスト入力）
 - **接続テスト**: 現在の設定での接続確認
-- **自動検出**: ローカルおよびWSL2ホストのOllamaを自動検出
+- **自動検出**: ローカルおよびWSL2ホストのOllamaを自動検出（Ollama選択時のみ）
 
 ### 設定の優先順位
 
@@ -69,9 +72,14 @@ Ollama接続先URLとモデル名は、Web UIのヘッダーにある歯車ア�
 
 | 変数名 | デフォルト値 | 説明 |
 |--------|-------------|------|
-| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | OllamaサーバーのURL（設定するとUI変更不可） |
-| `OLLAMA_MODEL` | `translategemma:12b` | 使用するモデル名（設定するとUI変更不可） |
+| `TRANSLATE_PROVIDER` | `ollama` | 翻訳プロバイダー (`ollama` / `openai_compat`) |
+| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | OllamaサーバーのURL |
+| `OLLAMA_MODEL` | `translategemma:12b` | Ollamaモデル名 |
+| `OPENAI_COMPAT_BASE_URL` | `http://localhost:1234` | OpenAI互換サーバーのURL |
+| `OPENAI_COMPAT_MODEL` | (空) | OpenAI互換モデル名 |
 | `DB_PATH` | `./data/translation_history.db` | SQLiteデータベースのパス |
+
+環境変数が設定されている項目はUIでロック表示となり変更できません。
 
 ## WSL2環境での使用
 

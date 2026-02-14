@@ -1,11 +1,13 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getBaseUrl } from '$lib/server/ollama';
-import { testOllamaConnection } from '$lib/server/detect';
-import type { ModelsResponse } from '$lib/types';
+import { getProvider } from '$lib/server/provider';
+import type { ProviderType, ModelsResponse } from '$lib/types';
 
 export const GET: RequestHandler = async ({ url }) => {
   const urlParam = url.searchParams.get('url');
+  const providerParam = url.searchParams.get('provider') as ProviderType | null;
+  const provider = getProvider(providerParam ?? undefined);
+
   let baseUrl: string;
 
   if (urlParam) {
@@ -19,10 +21,10 @@ export const GET: RequestHandler = async ({ url }) => {
       );
     }
   } else {
-    baseUrl = getBaseUrl();
+    baseUrl = provider.getBaseUrl();
   }
 
-  const result = await testOllamaConnection(baseUrl);
+  const result = await provider.listModels(baseUrl);
 
   return json({
     success: result.ok,

@@ -32,10 +32,13 @@ lint やフォーマットのエラーがある場合は `bun run lint:fix` と 
 ### BFF Design (SvelteKit +server.ts)
 
 - **API Routes**: `src/routes/api/` 配下の `+server.ts` で REST API を提供
-- **Ollama Integration**: サーバーサイドで Ollama API を呼び出し（フロントエンドは直接呼ばない）
+- **Provider Abstraction**: `TranslationProvider` interface による翻訳プロバイダー抽象化（`src/lib/server/provider.ts`）
+  - `OllamaProvider`: Ollama `/api/generate` エンドポイント（`ollama.ts`）
+  - `OpenAiCompatProvider`: OpenAI互換 `/v1/chat/completions` エンドポイント（`openai-compat.ts`）
+  - ファクトリ: `getProvider(type?)` でアクティブプロバイダーを取得
 - **Database**: `better-sqlite3` による同期 SQLite 操作（WAL モード）
-- **Settings**: `ollama.ts` の `getBaseUrl()` / `getModel()` が env → DB → デフォルトの優先順位で解決
-- **Error Handling**: Ollama 接続エラー時は接続先 URL をエラーメッセージに含める
+- **Settings**: 各プロバイダーの URL/モデルは独立した DB キーで保持。env → DB → デフォルトの優先順位で解決
+- **Error Handling**: 接続エラー時は接続先 URL をエラーメッセージに含める
 
 ### Frontend Design
 
@@ -58,6 +61,20 @@ lint やフォーマットのエラーがある場合は `bun run lint:fix` と 
 
 - コード内では `$env/dynamic/private` を使用（ランタイム読み込み）
 - 環境変数が設定されている場合はUIでロック表示（変更不可）
+
+#### 環境変数一覧
+
+| 環境変数 | 説明 | デフォルト |
+|---------|------|----------|
+| `TRANSLATE_PROVIDER` | アクティブプロバイダー (`ollama` / `openai_compat`) | `ollama` |
+| `OLLAMA_BASE_URL` | Ollama サーバー URL | `http://127.0.0.1:11434` |
+| `OLLAMA_MODEL` | Ollama モデル名 | `translategemma:12b` |
+| `OPENAI_COMPAT_BASE_URL` | OpenAI互換サーバー URL | `http://localhost:1234` |
+| `OPENAI_COMPAT_MODEL` | OpenAI互換モデル名 | (空文字) |
+
+#### DB設定キー
+
+`translate_provider`, `ollama_base_url`, `ollama_model`, `openai_compat_base_url`, `openai_compat_model`
 
 ## Critical: TranslateGemma Prompt Format
 

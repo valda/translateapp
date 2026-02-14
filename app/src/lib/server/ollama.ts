@@ -2,6 +2,8 @@ import { env } from '$env/dynamic/private';
 import { LANGUAGE_NAMES } from './constants';
 import { getSetting } from './database';
 import type { SettingSource } from '$lib/types';
+import type { TranslationProvider, ConnectionTestResult } from './provider';
+import { testOllamaConnection } from './detect';
 
 export const DEFAULT_BASE_URL = 'http://127.0.0.1:11434';
 export const DEFAULT_MODEL = 'translategemma:12b';
@@ -50,11 +52,7 @@ ${text}`;
   return prompt;
 }
 
-export interface TranslateResult {
-  translatedText: string;
-  prompt: string;
-  rawResponse: string;
-}
+export type { TranslateResult } from './provider';
 
 export async function translateText(
   text: string,
@@ -111,5 +109,20 @@ export async function translateText(
     throw error;
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+export class OllamaProvider implements TranslationProvider {
+  readonly name = 'ollama' as const;
+  getBaseUrl = getBaseUrl;
+  getModel = getModel;
+  getBaseUrlSource = getBaseUrlSource;
+  getModelSource = getModelSource;
+  translateText = translateText;
+  async testConnection(url: string, timeoutMs?: number): Promise<ConnectionTestResult> {
+    return testOllamaConnection(url, timeoutMs);
+  }
+  async listModels(url: string, timeoutMs?: number): Promise<ConnectionTestResult> {
+    return testOllamaConnection(url, timeoutMs);
   }
 }

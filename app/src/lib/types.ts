@@ -22,11 +22,21 @@ export interface TranslationResponse {
 
 export type SettingSource = 'env' | 'db' | 'default';
 
+export type ProviderType = 'ollama' | 'openai_compat';
+
 export interface AppSettings {
+  translate_provider: ProviderType;
+  translate_provider_source: SettingSource;
+  // Ollama
   ollama_base_url: string;
   ollama_model: string;
   ollama_base_url_source: SettingSource;
   ollama_model_source: SettingSource;
+  // OpenAI互換
+  openai_compat_base_url: string;
+  openai_compat_model: string;
+  openai_compat_base_url_source: SettingSource;
+  openai_compat_model_source: SettingSource;
 }
 
 export interface SettingsResponse {

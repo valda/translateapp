@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { TranslationRequestSchema } from '$lib/server/schemas';
-import { translateText } from '$lib/server/ollama';
+import { getProvider } from '$lib/server/provider';
 
 export const POST: RequestHandler = async ({ request }) => {
   let body: unknown;
@@ -20,7 +20,8 @@ export const POST: RequestHandler = async ({ request }) => {
   const { text, source_lang, target_lang, reference_text } = parsed.data;
 
   try {
-    const result = await translateText(text, source_lang, target_lang, reference_text);
+    const provider = getProvider();
+    const result = await provider.translateText(text, source_lang, target_lang, reference_text);
     return json({
       original_text: text,
       translated_text: result.translatedText,

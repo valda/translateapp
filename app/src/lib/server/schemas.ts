@@ -15,6 +15,9 @@ export const HistoryCreateSchema = z.object({
 });
 
 export const SettingsUpdateSchema = z.object({
+  translate_provider: z.enum(['ollama', 'openai_compat']).optional(),
   ollama_base_url: z.string().url().optional(),
   ollama_model: z.string().min(1).optional(),
+  openai_compat_base_url: z.string().url().optional(),
+  openai_compat_model: z.string().min(1).optional(),
 });
